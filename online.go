@@ -154,3 +154,140 @@ func (c *Client) PublicKey(ctx context.Context) (string, error) {
 	}
 	return wrap.PublicKeyPEM, nil
 }
+
+// StartPurchaseOptions captures the optional fields on POST /v1/purchase.
+// Zero-valued fields are omitted from the request. To buy a specific
+// tier, set PolicySlug — list available tiers with ListPublicPolicies.
+type StartPurchaseOptions struct {
+	BuyerEmail  string
+	BuyerNote   string
+	RedirectURL string
+	Code        string
+	// PolicySlug — when set, the licensing service prices the invoice
+	// at the policy's price_sats_override and the issued license
+	// carries that policy's entitlements / duration / max_machines /
+	// trial flag. When omitted, falls back to the product's default
+	// policy.
+	PolicySlug string
+}
+
+// PurchaseSession is the response from POST /v1/purchase.
+type PurchaseSession struct {
+	InvoiceID        string `json:"invoice_id"`
+	BTCPayInvoiceID  string `json:"btcpay_invoice_id"`
+	CheckoutURL      string `json:"checkout_url"`
+	AmountSats       int64  `json:"amount_sats"`
+	BasePriceSats    int64  `json:"base_price_sats,omitempty"`
+	DiscountApplied  int64  `json:"discount_applied_sats,omitempty"`
+	PollURL          string `json:"poll_url"`
+}
+
+// StartPurchase opens a purchase invoice with the daemon. The buyer
+// opens the returned CheckoutURL in their browser; once payment
+// settles, the issued license_key is available via PollPurchase
+// (or the corresponding webhook).
+func (c *Client) StartPurchase(ctx context.Context, productSlug string, opts StartPurchaseOptions) (PurchaseSession, error) {
+	body := map[string]any{"product": productSlug}
+	if opts.BuyerEmail != "" {
+		body["buyer_email"] = opts.BuyerEmail
+	}
+	if opts.BuyerNote != "" {
+		body["buyer_note"] = opts.BuyerNote
+	}
+	if opts.RedirectURL != "" {
+		body["redirect_url"] = opts.RedirectURL
+	}
+	if opts.Code != "" {
+		body["code"] = opts.Code
+	}
+	if opts.PolicySlug != "" {
+		body["policy_slug"] = opts.PolicySlug
+	}
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return PurchaseSession{}, err
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+"/v1/purchase", strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return PurchaseSession{}, err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	resp, err := c.HTTP.Do(httpReq)
+	if err != nil {
+		return PurchaseSession{}, fmt.Errorf("start_purchase: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return PurchaseSession{}, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return PurchaseSession{}, fmt.Errorf("daemon returned HTTP %d: %s", resp.StatusCode, string(respBody))
+	}
+	var session PurchaseSession
+	if err := json.Unmarshal(respBody, &session); err != nil {
+		return PurchaseSession{}, fmt.Errorf("decode purchase response: %w", err)
+	}
+	return session, nil
+}
+
+// PublicPolicy is one tier in the buyer-visible policy list.
+type PublicPolicy struct {
+	Slug              string   `json:"slug"`
+	Name              string   `json:"name"`
+	Description       string   `json:"description"`
+	PriceSats         int64    `json:"price_sats"`
+	DurationSeconds   int64    `json:"duration_seconds"`
+	MaxMachines       int64    `json:"max_machines"`
+	IsTrial           bool     `json:"is_trial"`
+	Entitlements      []string `json:"entitlements"`
+	Highlighted       bool     `json:"highlighted"`
+	IsRecurring       bool     `json:"is_recurring"`
+	RenewalPeriodDays int64    `json:"renewal_period_days"`
+	TrialDays         int64    `json:"trial_days"`
+}
+
+// PublicPoliciesProduct is the product-level fields on the public
+// policies response.
+type PublicPoliciesProduct struct {
+	Slug          string `json:"slug"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	BasePriceSats int64  `json:"base_price_sats"`
+}
+
+// PublicPoliciesResponse is the response from GET /v1/products/<slug>/policies.
+type PublicPoliciesResponse struct {
+	Product  PublicPoliciesProduct `json:"product"`
+	Policies []PublicPolicy        `json:"policies"`
+}
+
+// ListPublicPolicies returns the buyer-visible tier list for a
+// product. No auth required — same data the licensing service's
+// /buy/<slug> page reads server-side. Use this to render an in-app
+// tier picker that stays in sync with the operator's admin-side
+// tier setup.
+func (c *Client) ListPublicPolicies(ctx context.Context, productSlug string) (PublicPoliciesResponse, error) {
+	url := c.BaseURL + "/v1/products/" + productSlug + "/policies"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return PublicPoliciesResponse{}, err
+	}
+	resp, err := c.HTTP.Do(httpReq)
+	if err != nil {
+		return PublicPoliciesResponse{}, fmt.Errorf("list_public_policies: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return PublicPoliciesResponse{}, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return PublicPoliciesResponse{}, fmt.Errorf("daemon returned HTTP %d: %s", resp.StatusCode, string(body))
+	}
+	var out PublicPoliciesResponse
+	if err := json.Unmarshal(body, &out); err != nil {
+		return PublicPoliciesResponse{}, fmt.Errorf("decode policies response: %w", err)
+	}
+	return out, nil
+}
