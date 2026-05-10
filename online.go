@@ -247,13 +247,25 @@ type PublicPolicy struct {
 	TrialDays         int64    `json:"trial_days"`
 }
 
+// EntitlementDef is one entry in a product's entitlements catalog
+// (Keysat migration 0014). Operator declares the closed list once per
+// product; policies pick from this list. Use Name as the human-readable
+// label when rendering an in-app tier picker (e.g. "AI summaries"
+// instead of the raw "ai_summaries" slug).
+type EntitlementDef struct {
+	Slug        string `json:"slug"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
 // PublicPoliciesProduct is the product-level fields on the public
 // policies response.
 type PublicPoliciesProduct struct {
-	Slug          string `json:"slug"`
-	Name          string `json:"name"`
-	Description   string `json:"description"`
-	BasePriceSats int64  `json:"base_price_sats"`
+	Slug                 string           `json:"slug"`
+	Name                 string           `json:"name"`
+	Description          string           `json:"description"`
+	BasePriceSats        int64            `json:"base_price_sats"`
+	EntitlementsCatalog  []EntitlementDef `json:"entitlements_catalog"`
 }
 
 // PublicPoliciesResponse is the response from GET /v1/products/<slug>/policies.
