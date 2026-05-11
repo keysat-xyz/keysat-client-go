@@ -1,6 +1,6 @@
 # keysat-client-go
 
-Go SDK for [Keysat](https://keysat.xyz) — a self-hosted, Bitcoin-paid software licensing service.
+Go SDK for [Keysat](https://keysat.xyz) — a Bitcoin-native self-hosted software licensing service.
 
 Verifies LIC1-format license keys offline against an Ed25519 public key, and optionally validates them online against a running Keysat daemon.
 
