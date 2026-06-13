@@ -91,7 +91,7 @@ When fetched standalone via `go get`, the crosscheck test skips gracefully (the 
 
 ## API stability
 
-This SDK is alpha alongside Keysat v0.1.0. The wire format itself is stable and won't break compatibility — license keys issued by any v0.1 daemon will keep parsing in any future SDK. The Go API surface (function names, struct fields) may settle further before v1.0; nothing here is wildly out of line with idiomatic Go but expect minor tweaks.
+This SDK is alpha; the wire format is stable against Keysat v0.2. The LIC1 format itself won't break compatibility — license keys issued by any Keysat daemon will keep parsing in any future SDK. The Go API surface (function names, struct fields) may settle further before v1.0; nothing here is wildly out of line with idiomatic Go but expect minor tweaks.
 
 ## License
 
