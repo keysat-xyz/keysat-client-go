@@ -6,7 +6,7 @@
 // agrees on.
 //
 // The path to vector.json assumes this package is checked out
-// under the parent licensing/ workspace (next to
+// under the parent keysat/ workspace (next to
 // licensing-client-rust, etc.). Skip the test gracefully if the
 // vector isn't reachable — when this SDK is fetched standalone
 // via `go get`, there's nothing to cross-check against.
@@ -75,7 +75,7 @@ func loadVector(t *testing.T) vectorFile {
 	t.Skipf("crosscheck vector.json not found alongside this package " +
 		"(expected at ../tests/crosscheck/vector.json); skipping. " +
 		"This is normal when fetched standalone via `go get` — the " +
-		"crosscheck only runs from the parent licensing/ workspace.")
+		"crosscheck only runs from the parent keysat/ workspace.")
 	return vectorFile{}
 }
 

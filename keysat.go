@@ -18,7 +18,7 @@
 // Do not edit one SDK without the others — the wire format is
 // crosscheck-tested across all four implementations (the daemon,
 // the Rust SDK, the TS SDK, and this one) using the shared
-// vectors at tests/crosscheck/vector.json in the parent licensing
+// vectors at tests/crosscheck/vector.json in the parent keysat
 // repo.
 package keysat
 

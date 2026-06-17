@@ -87,7 +87,7 @@ if h != payload.FingerprintHash {
 
 Every SDK + the daemon agree on the LIC1 wire format. Crosscheck tests in this package run against the shared `tests/crosscheck/vector.json` (alongside the daemon repo) — three independently-signed fixtures (v1 legacy, v2 trial with entitlements, v2 perpetual unbound) parse to the same field values across Rust, TypeScript, Python, and Go.
 
-When fetched standalone via `go get`, the crosscheck test skips gracefully (the vector file isn't bundled into the Go module). The crosscheck only runs from the parent `licensing/` workspace.
+When fetched standalone via `go get`, the crosscheck test skips gracefully (the vector file isn't bundled into the Go module). The crosscheck only runs from the parent `keysat/` workspace.
 
 ## API stability
 
