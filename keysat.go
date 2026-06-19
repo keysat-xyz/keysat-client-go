@@ -221,7 +221,8 @@ func Verify(pub ed25519.PublicKey, signedBytes, signature []byte) error {
 // ParseAndVerify is a convenience wrapper around ParseKey + Verify
 // that returns the parsed payload only when the signature is valid.
 // Most application code should call this rather than the lower-level
-// pieces.
+// pieces. It checks the signature only, not expiry — use
+// ParseAndVerifyAt to also reject expired keys.
 func ParseAndVerify(keyString string, pub ed25519.PublicKey) (LicensePayload, error) {
 	payload, sig, signed, err := ParseKey(keyString)
 	if err != nil {
@@ -229,6 +230,25 @@ func ParseAndVerify(keyString string, pub ed25519.PublicKey) (LicensePayload, er
 	}
 	if err := Verify(pub, signed, sig); err != nil {
 		return LicensePayload{}, err
+	}
+	return payload, nil
+}
+
+// ParseAndVerifyAt is ParseAndVerify plus an expiry gate: once the
+// signature verifies, it returns ErrExpired if the key has expired at
+// nowUnix. Perpetual keys (ExpiresAt == 0) never expire. This is the
+// time-aware offline path (the Rust and TS SDKs spell it
+// verify_with_time); it is offline-only with no grace window — use an
+// online daemon validation for revocation and grace. The caller
+// supplies nowUnix (typically time.Now().Unix()) so the check stays
+// clock-free and testable.
+func ParseAndVerifyAt(keyString string, pub ed25519.PublicKey, nowUnix int64) (LicensePayload, error) {
+	payload, err := ParseAndVerify(keyString, pub)
+	if err != nil {
+		return LicensePayload{}, err
+	}
+	if payload.IsExpiredAt(nowUnix) {
+		return LicensePayload{}, ErrExpired
 	}
 	return payload, nil
 }
@@ -265,4 +285,7 @@ var (
 	// ErrBadSignature is returned when the parsed signature does not
 	// match the payload + public key.
 	ErrBadSignature = errors.New("bad_signature")
+	// ErrExpired is returned by ParseAndVerifyAt when a key's signature
+	// is valid but it has expired at the supplied time.
+	ErrExpired = errors.New("expired")
 )

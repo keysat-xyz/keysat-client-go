@@ -18,6 +18,7 @@ Stdlib only — no third-party dependencies.
 package main
 
 import (
+    "errors"
     "fmt"
     "log"
     "time"
@@ -37,12 +38,11 @@ func main() {
 
     licenseKey := readKeyFromUserConfig() // however your app stores it
 
-    payload, err := keysat.ParseAndVerify(licenseKey, pub)
+    // Checks the signature and rejects an expired key in one call.
+    payload, err := keysat.ParseAndVerifyAt(licenseKey, pub, time.Now().Unix())
+    if errors.Is(err, keysat.ErrExpired) { log.Fatal("license expired") }
     if err != nil { log.Fatalf("license invalid: %v", err) }
 
-    if payload.IsExpiredAt(time.Now().Unix()) {
-        log.Fatal("license expired")
-    }
     if !payload.HasEntitlement("pro") {
         log.Fatal("license does not include 'pro' tier")
     }

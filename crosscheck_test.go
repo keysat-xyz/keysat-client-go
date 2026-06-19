@@ -178,3 +178,25 @@ func TestCrosscheck_V2_SignatureVerifies(t *testing.T) {
 		t.Errorf("unexpected version: %d", payload.Version)
 	}
 }
+
+// ParseAndVerifyAt layers an expiry gate over ParseAndVerify. The v2
+// fixture carries an explicit expiry, so verifying at that instant must
+// return ErrExpired and one second earlier must still pass; the
+// perpetual fixture (ExpiresAt == 0) must never expire.
+func TestCrosscheck_V2_ParseAndVerifyAt(t *testing.T) {
+	v := loadVector(t)
+	pub, err := keysat.LoadPublicKeyPEM(v.PublicKeyPEM)
+	if err != nil {
+		t.Fatalf("LoadPublicKeyPEM: %v", err)
+	}
+	exp := v.V2.Expected.ExpiresAt
+	if _, err := keysat.ParseAndVerifyAt(v.V2.LicenseKey, pub, exp); !errors.Is(err, keysat.ErrExpired) {
+		t.Errorf("at expiry: err = %v, want ErrExpired", err)
+	}
+	if _, err := keysat.ParseAndVerifyAt(v.V2.LicenseKey, pub, exp-1); err != nil {
+		t.Errorf("one second before expiry: err = %v, want nil", err)
+	}
+	if _, err := keysat.ParseAndVerifyAt(v.V2PerpetualUnbound.LicenseKey, pub, 4_000_000_000); err != nil {
+		t.Errorf("perpetual key: err = %v, want nil", err)
+	}
+}

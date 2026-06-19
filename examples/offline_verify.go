@@ -4,6 +4,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -22,13 +23,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("loading public key: %v", err)
 	}
-	payload, err := keysat.ParseAndVerify(licenseKey, pub)
+	// ParseAndVerifyAt checks the signature AND rejects an expired key in
+	// one call. (Use ParseAndVerify if you'd rather inspect an expired key
+	// than reject it.)
+	payload, err := keysat.ParseAndVerifyAt(licenseKey, pub, time.Now().Unix())
+	if errors.Is(err, keysat.ErrExpired) {
+		log.Fatal("license expired")
+	}
 	if err != nil {
 		log.Fatalf("license invalid: %v", err)
 	}
 	fmt.Printf("OK — version=%d trial=%v fingerprint_bound=%v entitlements=%v\n",
 		payload.Version, payload.IsTrial(), payload.IsFingerprintBound(), payload.Entitlements)
-	if payload.IsExpiredAt(time.Now().Unix()) {
-		fmt.Println("(expired)")
-	}
 }
