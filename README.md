@@ -40,8 +40,10 @@ func main() {
 
     // Checks the signature and rejects an expired key in one call.
     payload, err := keysat.ParseAndVerifyAt(licenseKey, pub, time.Now().Unix())
-    if errors.Is(err, keysat.ErrExpired) { log.Fatal("license expired") }
-    if err != nil { log.Fatalf("license invalid: %v", err) }
+    if err != nil {
+        if errors.Is(err, keysat.ErrExpired) { log.Fatal("license expired") }
+        log.Fatalf("license invalid: %v", err)
+    }
 
     if !payload.HasEntitlement("pro") {
         log.Fatal("license does not include 'pro' tier")

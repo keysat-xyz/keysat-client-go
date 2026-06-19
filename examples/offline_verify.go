@@ -27,10 +27,10 @@ func main() {
 	// one call. (Use ParseAndVerify if you'd rather inspect an expired key
 	// than reject it.)
 	payload, err := keysat.ParseAndVerifyAt(licenseKey, pub, time.Now().Unix())
-	if errors.Is(err, keysat.ErrExpired) {
-		log.Fatal("license expired")
-	}
 	if err != nil {
+		if errors.Is(err, keysat.ErrExpired) {
+			log.Fatal("license expired")
+		}
 		log.Fatalf("license invalid: %v", err)
 	}
 	fmt.Printf("OK — version=%d trial=%v fingerprint_bound=%v entitlements=%v\n",

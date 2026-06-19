@@ -193,6 +193,9 @@ func TestCrosscheck_V2_ParseAndVerifyAt(t *testing.T) {
 	if _, err := keysat.ParseAndVerifyAt(v.V2.LicenseKey, pub, exp); !errors.Is(err, keysat.ErrExpired) {
 		t.Errorf("at expiry: err = %v, want ErrExpired", err)
 	}
+	if _, err := keysat.ParseAndVerifyAt(v.V2.LicenseKey, pub, exp+3600); !errors.Is(err, keysat.ErrExpired) {
+		t.Errorf("after expiry: err = %v, want ErrExpired", err)
+	}
 	if _, err := keysat.ParseAndVerifyAt(v.V2.LicenseKey, pub, exp-1); err != nil {
 		t.Errorf("one second before expiry: err = %v, want nil", err)
 	}
